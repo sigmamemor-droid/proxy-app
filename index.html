@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proxy & VPN Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #777;
+            font-size: 14px;
+        }
+
+        .status-container {
+            background: #f5f5f5;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 5px solid #667eea;
+        }
+
+        .status-label {
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .status-value {
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background-color: #4caf50;
+        }
+
+        .status-indicator.disconnected {
+            background-color: #f44336;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            grid-column: 1 / -1;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0);
+        }
+
+        .proxy-list {
+            background: #f9f9f9;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid #eee;
+        }
+
+        .proxy-list h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .proxy-item {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #eee;
+            transition: all 0.3s ease;
+        }
+
+        .proxy-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        }
+
+        .proxy-item.active {
+            background: #f0f4ff;
+            border-color: #667eea;
+            font-weight: 600;
+        }
+
+        .proxy-info {
+            flex: 1;
+        }
+
+        .proxy-address {
+            color: #333;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-all;
+        }
+
+        .proxy-type {
+            color: #999;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .proxy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .proxy-btn:hover {
+            background: #764ba2;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #1565c0;
+            margin-bottom: 20px;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 12px;
+            text-decoration: underline;
+            padding: 0;
+            margin-left: 5px;
+        }
+
+        .copy-btn:hover {
+            color: #764ba2;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ Proxy Manager</h1>
+            <p class="subtitle">Управление прокси и VPN соединением</p>
+        </header>
+
+        <div class="info-box">
+            💡 Нажмите "Подключиться" чтобы активировать случайный прокси из списка
+        </div>
+
+        <div class="status-container">
+            <div class="status-label">Текущий статус</div>
+            <div style="display: flex; align-items: center;">
+                <span class="status-indicator disconnected" id="statusIndicator"></span>
+                <span id="statusText" style="color: #f44336; font-weight: 600;">Отключено</span>
+            </div>
+            <div style="margin-top: 15px;">
+                <div class="status-label">IP Адрес</div>
+                <div class="status-value" id="currentProxy">
+                    Нет активного прокси
+                    <button class="copy-btn" onclick="copyToClipboard('currentProxy')">скопировать</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" onclick="connectProxy()">🚀 Подключиться</button>
+            <button class="btn-secondary" onclick="generateProxies()">🔄 Обновить список</button>
+            <button class="btn-secondary" onclick="disconnectProxy()">❌ Отключиться</button>
+        </div>
+
+        <div class="proxy-list">
+            <h3>📋 Доступные прокси (10 штук)</h3>
+            <div id="proxyContainer"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 15px; color: #666;">Генерируем прокси...</p>
+        </div>
+    </div>
+
+    <script>
+        let proxies = [];
+        let currentProxy = null;
+        let isConnected = false;
+
+        // Структуры прокси для случайной генерации
+        const proxyTypes = ['HTTP', 'HTTPS', 'SOCKS5', 'SOCKS4'];
+        const countries = ['🇺🇸 USA', '🇬🇧 UK', '🇩🇪 Germany', '🇯🇵 Japan', '🇨🇦 Canada', '🇦🇺 Australia', '🇫🇷 France', '🇮🇳 India'];
+
+        function generateRandomIP() {
+            return `${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`;
+        }
+
+        function generateRandomPort() {
+            return Math.floor(Math.random() * (9999 - 1000)) + 1000;
+        }
+
+        function generateProxies() {
+            showLoading(true);
+            
+            setTimeout(() => {
+                proxies = [];
+                for (let i = 0; i < 10; i++) {
+                    const ip = generateRandomIP();
+                    const port = generateRandomPort();
+                    const type = proxyTypes[Math.floor(Math.random() * proxyTypes.length)];
+                    const country = countries[Math.floor(Math.random() * countries.length)];
+                    
+                    proxies.push({
+                        id: i,
+                        address: `${ip}:${port}`,
+                        type: type,
+                        country: country,
+                        speed: Math.floor(Math.random() * 100) + 20,
+                        uptime: Math.floor(Math.random() * 40) + 60
+                    });
+                }
+                
+                renderProxies();
+                showLoading(false);
+                showToast('✅ Список прокси обновлен');
+            }, 1500);
+        }
+
+        function renderProxies() {
+            const container = document.getElementById('proxyContainer');
+            container.innerHTML = '';
+            
+            proxies.forEach(proxy => {
+                const isActive = currentProxy && currentProxy.id === proxy.id;
+                const proxyItem = document.createElement('div');
+                proxyItem.className = `proxy-item ${isActive ? 'active' : ''}`;
+                proxyItem.innerHTML = `
+                    <div class="proxy-info">
+                        <div class="proxy-address">${proxy.address}</div>
+                        <div class="proxy-type">${proxy.country} • ${proxy.type} • ${proxy.speed} Mbps</div>
+                    </div>
+                    <button class="proxy-btn" onclick="selectProxy(${proxy.id})">
+                        ${isActive ? '✓ Активный' : 'Выбрать'}
+                    </button>
+                `;
+                container.appendChild(proxyItem);
+            });
+        }
+
+        function selectProxy(proxyId) {
+            const proxy = proxies.find(p => p.id === proxyId);
+            if (proxy) {
+                currentProxy = proxy;
+                isConnected = true;
+                updateStatus();
+                renderProxies();
+                showToast(`✅ Подключено к ${proxy.address}`);
+            }
+        }
+
+        function connectProxy() {
+            if (proxies.length === 0) {
+                generateProxies();
+            } else {
+                const randomIndex = Math.floor(Math.random() * proxies.length);
+                selectProxy(proxies[randomIndex].id);
+            }
+        }
+
+        function disconnectProxy() {
+            currentProxy = null;
+            isConnected = false;
+            updateStatus();
+            renderProxies();
+            showToast('❌ Отключено от прокси');
+        }
+
+        function updateStatus() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const currentProxyEl = document.getElementById('currentProxy');
+            
+            if (isConnected && currentProxy) {
+                statusIndicator.className = 'status-indicator connected';
+                statusText.textContent = 'Подключено';
+                statusText.style.color = '#4caf50';
+                currentProxyEl.innerHTML = `
+                    ${currentProxy.address}
+                    <button class="copy-btn" onclick="copyToClipboard('currentProxy')">скопировать</button>
+                `;
+            } else {
+                statusIndicator.className = 'status-indicator disconnected';
+                statusText.textContent = 'Отключено';
+                statusText.style.color = '#f44336';
+                currentProxyEl.innerHTML = `
+                    Нет активного прокси
+                    <button class="copy-btn" onclick="copyToClipboard('currentProxy')">скопировать</button>
+                `;
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent.replace('скопировать', '').trim();
+            
+            if (text === 'Нет активного прокси') {
+                showToast('⚠️ Нет активного прокси для копирования');
+                return;
+            }
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('📋 Скопировано в буфер обмена');
+            }).catch(() => {
+                showToast('❌ Ошибка при копировании');
+            });
+        }
+
+        // Инициализация при загрузке
+        window.addEventListener('load', () => {
+            generateProxies();
+        });
+    </script>
+</body>
+</html>
